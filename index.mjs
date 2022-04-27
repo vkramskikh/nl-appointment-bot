@@ -21,7 +21,9 @@ const config = JSON.parse(fs.readFileSync(path.join(cwd, 'config.json'), {encodi
 const {
   token: TOKEN,
   chatId: CHAT_ID,
+  priorityChatId: PRIORITY_CHAT_ID,
   checkInterval: CHECK_INTERVAL = 30 * 60 * 1000,
+  priorityDelay: PRIORITY_DELAY = 5 * 60 * 1000,
 } = config;
 
 const bot = new TelegramBot(TOKEN, {polling: true, filepath: false});
@@ -34,6 +36,8 @@ bot.on('message', async (message) => {
   logInfo(message);
   return bot.sendMessage(message.chat.id, "This bot doesn't handle commands.");
 });
+
+const later = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 
 async function checkForSlots() {
   const driver = await new Builder()
@@ -92,12 +96,21 @@ async function checkForSlots() {
     }
 
     logInfo('There are slots avaialble!');
-    const successMessage = '[Есть доступные слоты!](' + appointmentPageUrl + ')';
-    if (screenshot) {
-      await bot.sendPhoto(CHAT_ID, Buffer.from(screenshot, 'base64'), {caption: successMessage, parse_mode: 'Markdown'});
-    } else {
-      await bot.sendMessage(CHAT_ID, successMessage, {parse_mode: 'Markdown'});
+
+    async function notify(chatId) {
+      const successMessage = '[Есть доступные слоты!](' + appointmentPageUrl + ')';
+      if (screenshot) {
+        await bot.sendPhoto(chatId, Buffer.from(screenshot, 'base64'), {caption: successMessage, parse_mode: 'Markdown'});
+      } else {
+        await bot.sendMessage(chatId, successMessage, {parse_mode: 'Markdown'});
+      }
     }
+
+    if (PRIORITY_CHAT_ID) {
+      await notify(PRIORITY_CHAT_ID);
+      await later(PRIORITY_DELAY);
+    }
+    await notify(CHAT_ID);
   } catch (e) {
     logError(e);
   } finally {
