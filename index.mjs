@@ -89,17 +89,14 @@ async function checkForSlots() {
 
       const calendar = driver.findElement(By.id('plhMain_cldAppointment'));
       await driver.wait(until.elementIsVisible(calendar), 10000);
+      screenshot = await calendar.takeScreenshot();
 
       const noDatesAvailableMessage = driver.findElement(By.id('plhMain_lblMsg'));
       try {
         await driver.wait(until.elementIsVisible(noDatesAvailableMessage), 1000);
         logInfo('No slots avaialble.');
         return;
-      } catch (e) {
-        if (!(e instanceof NoSuchElementError)) throw e;
-      }
-
-      screenshot = await calendar.takeScreenshot();
+      } catch {}
     } catch (e) {
       logError('Failed to take calendar screenshot.');
       logError(e);
